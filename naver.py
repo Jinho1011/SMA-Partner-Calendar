@@ -138,9 +138,10 @@ def calendar(summary, starD, endD):
 
 if __name__ == "__main__":
     naver_login_info = {
-        "id": '',
-        "pwd": ''
+        "id": 'jinho9940',
+        "pwd": 'jinho1221!'
     }
+
     session = naver_session(naver_login_info.id, naver_login_info.pwd)
 
     NAVER_BOOKING_LIST_API_URL = get_url()
