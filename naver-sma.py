@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from __future__ import print_function
 import datetime
 import pickle
@@ -23,18 +24,18 @@ from pytz import timezone, utc
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 creds = None
-if os.path.exists('token.pickle'):
-    with open('token.pickle', 'rb') as token:
+if os.path.exists('C:\\Users\\music\\Downloads\\Naver-Partner-Google-Calendar-master\\Naver-Partner-Google-Calendar-master\\token.pickle'):
+    with open('C:\\Users\\music\\Downloads\\Naver-Partner-Google-Calendar-master\\Naver-Partner-Google-Calendar-master\\token.pickle', 'rb') as token:
         creds = pickle.load(token)
 if not creds or not creds.valid:
     if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
     else:
         flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json', SCOPES)
+            'C:\\Users\\music\\Downloads\\Naver-Partner-Google-Calendar-master\\Naver-Partner-Google-Calendar-master\\credentials.json', SCOPES)
         creds = flow.run_local_server(port=3030)
     # Save the credentials for the next run
-    with open('token.pickle', 'wb') as token:
+    with open('C:\\Users\\music\\Downloads\\Naver-Partner-Google-Calendar-master\\Naver-Partner-Google-Calendar-master\\token.pickle', 'wb') as token:
         pickle.dump(creds, token)
 service = build('calendar', 'v3', credentials=creds)
 
@@ -50,11 +51,15 @@ def get_url():
 def encrypt(key_str, uid, upw):
     def naver_style_join(l):
         return ''.join([chr(len(s)) + s for s in l])
+
     sessionkey, keyname, e_str, n_str = key_str.split(',')
     e, n = int(e_str, 16), int(n_str, 16)
+
     message = naver_style_join([sessionkey, uid, upw]).encode()
+
     pubkey = rsa.PublicKey(e, n)
     encrypted = rsa.encrypt(message, pubkey)
+
     return keyname, encrypted.hex()
 
 
@@ -66,6 +71,7 @@ def encrypt_account(uid, upw):
 
 def naver_session(nid, npw):
     encnm, encpw = encrypt_account(nid, npw)
+
     s = requests.Session()
     retries = Retry(
         total=5,
@@ -76,11 +82,13 @@ def naver_session(nid, npw):
     request_headers = {
         'User-agent': 'Mozilla/5.0'
     }
+
     bvsd_uuid = uuid.uuid4()
     encData = '{"a":"%s-4","b":"1.3.4","d":[{"i":"id","b":{"a":["0,%s"]},"d":"%s","e":false,"f":false},{"i":"%s","e":true,"f":false}],"h":"1f","i":{"a":"Mozilla/5.0"}}' % (
         bvsd_uuid, nid, nid, npw)
     bvsd = '{"uuid":"%s","encData":"%s"}' % (
         bvsd_uuid, lzstring.LZString.compressToEncodedURIComponent(encData))
+
     resp = s.post('https://nid.naver.com/nidlogin.login', data={
         'svctype': '0',
         'enctp': '1',
@@ -91,13 +99,15 @@ def naver_session(nid, npw):
         'encpw': encpw,
         'bvsd': bvsd
     }, headers=request_headers)
+
     finalize_url = re.search(
         r'location\.replace\("([^"]+)"\)', resp.content.decode("utf-8")).group(1)
     s.get(finalize_url)
+
     return s
 
 
-def calendar(summary, starD, endD, booking_opt):
+def calendar(summary, starD, endD):
     if booking_opt["name"] == None:
         event = {
             'summary': summary,
@@ -124,10 +134,8 @@ def calendar(summary, starD, endD, booking_opt):
             }
         }
 
-    print(event)
-
     now = datetime.utcnow().isoformat() + 'Z'
-    events_result = service.events().list(calendarId='gino9940@gmail.com', timeMin=now,
+    events_result = service.events().list(calendarId='sma.orangefox@gmail.com', timeMin=now,
                                           maxResults=100, singleEvents=True,
                                           orderBy='startTime').execute()
     events = events_result.get('items', [])
@@ -138,19 +146,17 @@ def calendar(summary, starD, endD, booking_opt):
         if summary == e['summary'] and str(starD+"+09:00") == e['start']['dateTime']:
             isOverlapped = True
 
-    # if (not isOverlapped):
-    #     event = service.events().insert(
-    #         calendarId='gino9940@gmail.com', body=event).execute()
+    if (not isOverlapped):
+        event = service.events().insert(
+            calendarId='sma.orangefox@gmail.com', body=event, sendUpdates=None, sendNotifications=None).execute()
+        print(start_date_obj, summary, " successfully added!")
+    else:
+        print(start_date_obj, summary, " already exist!")
 
 
 if __name__ == "__main__":
-    naver_login_info = {
-        "id": 'jinho9940',
-        "pwd": 'jinho1221!'
-    }
-
-    session = naver_session(naver_login_info["id"], naver_login_info["pwd"])
-
+    session = naver_session('jinho9940', 'jinho1221!')
+    print(" ### Created Session! ### ")
     NAVER_BOOKING_LIST_API_URL = get_url()
     req = session.get(NAVER_BOOKING_LIST_API_URL)
     book_json = json.loads(req.text)
