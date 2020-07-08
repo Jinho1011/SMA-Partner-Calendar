@@ -112,8 +112,10 @@ def calendar(summary, start_date, end_date, refund):
     # 1) 이미 들어가있는 경우 => 삭제
     # 2) 처음 등록하는 경우 => 등록하지 않음
 
-    now = datetime.utcnow().isoformat() + 'Z'
-    events_result = service.events().list(calendarId='sma.orangefox@gmail.com', timeMin=now,
+    today = datetime.date.today()
+    from_ = datetime.datetime(today.year, today.month, today.day, 0, 0, 0,
+                              tzinfo=datetime.timezone.utc).isoformat()
+    events_result = service.events().list(calendarId='sma.orangefox@gmail.com', timeMin=from_,
                                           maxResults=100, singleEvents=True,
                                           orderBy='startTime').execute()
     events = events_result.get('items', [])
